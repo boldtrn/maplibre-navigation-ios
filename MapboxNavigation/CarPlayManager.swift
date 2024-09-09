@@ -216,6 +216,58 @@ public class CarPlayManager: NSObject {
         formatter.allowedUnits = [.day, .hour, .minute]
         return formatter
     }()
+
+    /**
+     Starts a navigation with the gives routeController and the included route.
+     */
+    @MainActor
+    public func startNavigation(with routeController: RouteController) {
+        guard
+            let interfaceController,
+            let carPlayMapViewController = carWindow?.rootViewController as? CarPlayMapViewController
+        else {
+            return
+        }
+
+        let route = routeController.routeProgress.route
+        let waypoints = route.routeOptions.waypoints
+
+        let summaryVariants = [
+            self.fullDateComponentsFormatter.string(from: route.expectedTravelTime)!,
+            self.shortDateComponentsFormatter.string(from: route.expectedTravelTime)!,
+            self.briefDateComponentsFormatter.string(from: route.expectedTravelTime)!
+        ]
+        let routeChoice = CPRouteChoice(summaryVariants: summaryVariants, additionalInformationVariants: [route.description], selectionSummaryVariants: [route.description])
+        routeChoice.userInfo = route
+        let routeChoices = [routeChoice]
+
+        let originPlacemark = MKPlacemark(coordinate: waypoints.first!.coordinate)
+        let destinationPlacemark = MKPlacemark(coordinate: waypoints.last!.coordinate, addressDictionary: ["street":  waypoints.last!.name ?? ""])
+        let trip = CPTrip(origin: MKMapItem(placemark: originPlacemark), destination: MKMapItem(placemark: destinationPlacemark), routeChoices: routeChoices)
+
+        if interfaceController.templates.count > 1 {
+            interfaceController.popToRootTemplate(animated: false)
+        }
+
+        let navigationMapTemplate = self.mapTemplate(forNavigating: trip)
+        interfaceController.setRootTemplate(navigationMapTemplate, animated: true)
+
+        let navigationViewController = CarPlayNavigationViewController(
+            for: routeController,
+            mapTemplate: navigationMapTemplate,
+            interfaceController: interfaceController
+        )
+        navigationViewController.startNavigationSession(for: trip)
+        navigationViewController.carPlayNavigationDelegate = self
+
+        self.currentNavigator = navigationViewController
+
+        carPlayMapViewController.isOverviewingRoutes = false
+        carPlayMapViewController.present(navigationViewController, animated: true, completion: nil)
+
+        self.delegate?.carPlayManager(self, didBeginNavigationWith: routeController)
+    }
+
 }
 
 // MARK: CPApplicationDelegate
@@ -415,7 +467,9 @@ extension CarPlayManager: CPListTemplateDelegate {
             if let error {
                 let okTitle = NSLocalizedString("CARPLAY_OK", bundle: .mapboxNavigation, value: "OK", comment: "CPNavigationAlert OK button title")
                 let okAction = CPAlertAction(title: okTitle, style: .default) { _ in
-                    interfaceController.popToRootTemplate(animated: true)
+                    if interfaceController.templates.count > 1 {
+                        interfaceController.popToRootTemplate(animated: true)
+                    }
                 }
                 let alert = CPNavigationAlert(titleVariants: [error.localizedDescription],
                                               subtitleVariants: [error.localizedFailureReason ?? ""],
@@ -490,7 +544,10 @@ extension CarPlayManager: CPMapTemplateDelegate {
             self.createRouteController(with: route)
         }
 
-        interfaceController.popToRootTemplate(animated: false)
+        if interfaceController.templates.count > 1 {
+            interfaceController.popToRootTemplate(animated: false)
+        }
+
         let navigationMapTemplate = self.mapTemplate(forNavigating: trip)
         interfaceController.setRootTemplate(navigationMapTemplate, animated: true)
 
@@ -701,7 +758,9 @@ extension CarPlayManager: CarPlayNavigationDelegate {
         if let mainMapTemplate {
             self.interfaceController?.setRootTemplate(mainMapTemplate, animated: true)
         }
-        self.interfaceController?.popToRootTemplate(animated: true)
+        if let interfaceController, interfaceController.templates.count > 1 {
+            interfaceController.popToRootTemplate(animated: true)
+        }
         self.delegate?.carPlayManagerDidEndNavigation(self)
     }
 }
