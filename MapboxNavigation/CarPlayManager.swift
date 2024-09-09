@@ -572,11 +572,6 @@ extension CarPlayManager: CPMapTemplateDelegate {
         let mapTemplate = CPMapTemplate()
         mapTemplate.mapDelegate = self
 
-        let showFeedbackButton = CPMapButton { [weak self] _ in
-            self?.currentNavigator?.showFeedback()
-        }
-        showFeedbackButton.image = UIImage(named: "carplay_feedback", in: .mapboxNavigation, compatibleWith: nil)
-
         let overviewButton = CPMapButton { [weak self] button in
             guard let navigationViewController = self?.currentNavigator else {
                 return
@@ -587,8 +582,15 @@ extension CarPlayManager: CPMapTemplateDelegate {
             button.image = UIImage(named: imageName, in: .mapboxNavigation, compatibleWith: nil)
         }
         overviewButton.image = UIImage(named: "carplay_overview", in: .mapboxNavigation, compatibleWith: nil)
+        mapTemplate.mapButtons.append(overviewButton)
 
-        mapTemplate.mapButtons = [overviewButton, showFeedbackButton]
+        if self.currentNavigator?.carFeedbackTemplate != nil {
+            let showFeedbackButton = CPMapButton { [weak self] _ in
+                self?.currentNavigator?.showFeedback()
+            }
+            showFeedbackButton.image = UIImage(named: "carplay_feedback", in: .mapboxNavigation, compatibleWith: nil)
+            mapTemplate.mapButtons.append(showFeedbackButton)
+        }
 
         if let rootViewController = carWindow?.rootViewController as? CarPlayMapViewController,
            let leadingButtons = delegate?.carPlayManager?(self, leadingNavigationBarButtonsCompatibleWith: rootViewController.traitCollection, in: mapTemplate, for: .navigating) {

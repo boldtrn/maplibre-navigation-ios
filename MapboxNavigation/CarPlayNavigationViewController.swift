@@ -26,7 +26,7 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
     
     var carSession: CPNavigationSession!
     var mapTemplate: CPMapTemplate
-    var carFeedbackTemplate: CPGridTemplate!
+    var carFeedbackTemplate: CPGridTemplate?
     var carInterfaceController: CPInterfaceController
     var previousSafeAreaInsets: UIEdgeInsets?
     var styleManager: StyleManager!
@@ -150,7 +150,8 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
      Shows the interface for providing feedback about the route.
      */
     @objc public func showFeedback() {
-        self.carInterfaceController.pushTemplate(self.carFeedbackTemplate, animated: true)
+        guard let carFeedbackTemplate else { return }
+        self.carInterfaceController.pushTemplate(carFeedbackTemplate, animated: true)
     }
     
     /**
