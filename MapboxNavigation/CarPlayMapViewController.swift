@@ -7,7 +7,9 @@ import CarPlay
 class CarPlayMapViewController: UIViewController, MLNMapViewDelegate {
     static let defaultAltitude: CLLocationDistance = 16000
     
-    var styleManager: StyleManager!
+    var styleManager: StyleManager?
+    var useCustomStyle: Bool = false
+
     /// A very coarse location manager used for distinguishing between daytime and nighttime.
     fileprivate let coarseLocationManager: CLLocationManager = {
         let coarseLocationManager = CLLocationManager()
@@ -35,7 +37,14 @@ class CarPlayMapViewController: UIViewController, MLNMapViewDelegate {
         recenterButton.image = UIImage(named: "carplay_locate", in: bundle, compatibleWith: traitCollection)
         return recenterButton
     }()
-    
+
+    func setCustomMapStyle(with mapStyleURL: URL?) {
+        useCustomStyle = mapStyleURL != nil
+        if let mapStyleURL  {
+            mapView.styleURL = mapStyleURL
+        }
+    }
+
     override func loadView() {
         let mapView = NavigationMapView()
         mapView.delegate = self
@@ -49,7 +58,9 @@ class CarPlayMapViewController: UIViewController, MLNMapViewDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        self.styleManager = StyleManager(self, dayStyle: DayStyle(demoStyle: ()), nightStyle: NightStyle(demoStyle: ()))
+        if !useCustomStyle {
+            self.styleManager = StyleManager(self, dayStyle: DayStyle(demoStyle: ()), nightStyle: NightStyle(demoStyle: ()))
+        }
 
         self.resetCamera(animated: false, altitude: CarPlayMapViewController.defaultAltitude)
         self.mapView.setUserTrackingMode(.followWithCourse, animated: true, completionHandler: nil)
@@ -57,7 +68,9 @@ class CarPlayMapViewController: UIViewController, MLNMapViewDelegate {
 
     override open func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        self.styleManager.ensureAppropriateStyle()
+        if !useCustomStyle {
+            self.styleManager?.ensureAppropriateStyle()
+        }
     }
 
     public func zoomInButton() -> CPMapButton {

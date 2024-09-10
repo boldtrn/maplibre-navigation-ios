@@ -21,7 +21,7 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
     @objc public var drivingSide: DrivingSide = .right
     
     var routeController: RouteController
-    var mapView: NavigationMapView?
+    var mapView = NavigationMapView()
     let shieldHeight: CGFloat = 16
     
     var carSession: CPNavigationSession!
@@ -29,8 +29,10 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
     var carFeedbackTemplate: CPGridTemplate?
     var carInterfaceController: CPInterfaceController
     var previousSafeAreaInsets: UIEdgeInsets?
-    var styleManager: StyleManager!
-    
+
+    var useCustomStyle: Bool = false
+    var styleManager: StyleManager?
+
     let distanceFormatter = DistanceFormatter(approximate: true)
     
     var edgePadding: UIEdgeInsets {
@@ -66,11 +68,18 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
+    func setCustomMapStyle(with mapStyleURL: URL?) {
+        useCustomStyle = mapStyleURL != nil
+        if let mapStyleURL  {
+            mapView.styleURL = mapStyleURL
+        }
+    }
+
     override public func viewDidLoad() {
         super.viewDidLoad()
-        
-        let mapView = NavigationMapView(frame: view.bounds)
+
+        mapView.frame = view.bounds
         mapView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         mapView.compassView.isHidden = true
         mapView.logoView.isHidden = true
@@ -81,10 +90,11 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
         mapView.zoomedOutMotorwayAltitude = 1000
         mapView.longManeuverDistance = 500
 
-        self.mapView = mapView
         view.addSubview(mapView)
         
-        self.styleManager = StyleManager(self, dayStyle: DayStyle(demoStyle: ()), nightStyle: NightStyle(demoStyle: ()))
+        if !useCustomStyle {
+            self.styleManager = StyleManager(self, dayStyle: DayStyle(demoStyle: ()), nightStyle: NightStyle(demoStyle: ()))
+        }
 
         self.resumeNotifications()
         self.routeController.resume()
@@ -93,7 +103,9 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
 
     override open func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        self.styleManager.ensureAppropriateStyle()
+        if !useCustomStyle {
+            self.styleManager?.ensureAppropriateStyle()
+        }
     }
 
     override public func viewWillDisappear(_ animated: Bool) {
@@ -118,7 +130,7 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
         
         if let previousSafeAreaInsets {
             let navigationBarIsOpen = view.safeAreaInsets > previousSafeAreaInsets
-            self.mapView?.compassView.isHidden = navigationBarIsOpen
+            self.mapView.compassView.isHidden = navigationBarIsOpen
         }
         
         previousSafeAreaInsets = view.safeAreaInsets
@@ -161,41 +173,41 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
      */
     @objc public var tracksUserCourse: Bool {
         get {
-            self.mapView?.tracksUserCourse ?? false
+            self.mapView.tracksUserCourse ?? false
         }
         set {
             if !tracksUserCourse, newValue {
-                self.mapView?.recenterMap()
-                self.mapView?.addArrow(route: self.routeController.routeProgress.route,
+                self.mapView.recenterMap()
+                self.mapView.addArrow(route: self.routeController.routeProgress.route,
                                        legIndex: self.routeController.routeProgress.legIndex,
                                        stepIndex: self.routeController.routeProgress.currentLegProgress.stepIndex + 1)
             } else if tracksUserCourse, !newValue {
                 guard let userLocation = routeController.locationManager.location?.coordinate else {
                     return
                 }
-                self.mapView?.enableFrameByFrameCourseViewTracking(for: 3)
-                self.mapView?.setOverheadCameraView(from: userLocation, along: self.routeController.routeProgress.route.coordinates!, for: self.edgePadding)
+                self.mapView.enableFrameByFrameCourseViewTracking(for: 3)
+                self.mapView.setOverheadCameraView(from: userLocation, along: self.routeController.routeProgress.route.coordinates!, for: self.edgePadding)
             }
         }
     }
     
     public func beginPanGesture() {
-        self.mapView?.tracksUserCourse = false
-        self.mapView?.enableFrameByFrameCourseViewTracking(for: 1)
+        self.mapView.tracksUserCourse = false
+        self.mapView.enableFrameByFrameCourseViewTracking(for: 1)
     }
     
     public func mapView(_ mapView: MLNMapView, didFinishLoading style: MLNStyle) {
-        self.mapView?.addArrow(route: self.routeController.routeProgress.route, legIndex: self.routeController.routeProgress.legIndex, stepIndex: self.routeController.routeProgress.currentLegProgress.stepIndex + 1)
-        self.mapView?.showRoutes([self.routeController.routeProgress.route])
-        self.mapView?.showWaypoints(self.routeController.routeProgress.route)
-        self.mapView?.recenterMap()
+        self.mapView.addArrow(route: self.routeController.routeProgress.route, legIndex: self.routeController.routeProgress.legIndex, stepIndex: self.routeController.routeProgress.currentLegProgress.stepIndex + 1)
+        self.mapView.showRoutes([self.routeController.routeProgress.route])
+        self.mapView.showWaypoints(self.routeController.routeProgress.route)
+        self.mapView.recenterMap()
     }
     
     @objc func visualInstructionDidChange(_ notification: NSNotification) {
         let routeProgress = notification.userInfo![RouteControllerNotificationUserInfoKey.routeProgressKey] as! RouteProgress
         self.updateManeuvers(for: routeProgress)
-        self.mapView?.showWaypoints(routeProgress.route)
-        self.mapView?.addArrow(route: routeProgress.route, legIndex: routeProgress.legIndex, stepIndex: routeProgress.currentLegProgress.stepIndex + 1)
+        self.mapView.showWaypoints(routeProgress.route)
+        self.mapView.addArrow(route: routeProgress.route, legIndex: routeProgress.legIndex, stepIndex: routeProgress.currentLegProgress.stepIndex + 1)
     }
     
     @objc func progressDidChange(_ notification: NSNotification) {
@@ -204,7 +216,7 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
         
         // Update the user puck
         let camera = MLNMapCamera(lookingAtCenter: location.coordinate, acrossDistance: 120, pitch: 60, heading: location.course)
-        self.mapView?.updateCourseTracking(location: location, camera: camera, animated: true)
+        self.mapView.updateCourseTracking(location: location, camera: camera, animated: true)
         
         let congestionLevel = routeProgress.averageCongestionLevelRemainingOnLeg ?? .unknown
         guard let maneuver = carSession.upcomingManeuvers.first else { return }
@@ -222,13 +234,13 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
     
     @objc func rerouted(_ notification: NSNotification) {
         self.updateRouteOnMap()
-        self.mapView?.recenterMap()
+        self.mapView.recenterMap()
     }
     
     func updateRouteOnMap() {
-        self.mapView?.addArrow(route: self.routeController.routeProgress.route, legIndex: self.routeController.routeProgress.legIndex, stepIndex: self.routeController.routeProgress.currentLegProgress.stepIndex + 1)
-        self.mapView?.showRoutes([self.routeController.routeProgress.route], legIndex: self.routeController.routeProgress.legIndex)
-        self.mapView?.showWaypoints(self.routeController.routeProgress.route, legIndex: self.routeController.routeProgress.legIndex)
+        self.mapView.addArrow(route: self.routeController.routeProgress.route, legIndex: self.routeController.routeProgress.legIndex, stepIndex: self.routeController.routeProgress.currentLegProgress.stepIndex + 1)
+        self.mapView.showRoutes([self.routeController.routeProgress.route], legIndex: self.routeController.routeProgress.legIndex)
+        self.mapView.showWaypoints(self.routeController.routeProgress.route, legIndex: self.routeController.routeProgress.legIndex)
     }
     
     func updateManeuvers(for routeProgress: RouteProgress) {
@@ -354,14 +366,14 @@ extension CarPlayNavigationViewController: StyleManagerDelegate {
     }
     
     public func styleManager(_ styleManager: StyleManager, didApply style: Style) {
-        if self.mapView?.styleURL != style.mapStyleURL {
-            self.mapView?.style?.transition = MLNTransition(duration: 0.5, delay: 0)
-            self.mapView?.styleURL = style.mapStyleURL
+        if self.mapView.styleURL != style.mapStyleURL {
+            self.mapView.style?.transition = MLNTransition(duration: 0.5, delay: 0)
+            self.mapView.styleURL = style.mapStyleURL
         }
     }
     
     public func styleManagerDidRefreshAppearance(_ styleManager: StyleManager) {
-        self.mapView?.reloadStyle(self)
+        self.mapView.reloadStyle(self)
     }
 }
 
