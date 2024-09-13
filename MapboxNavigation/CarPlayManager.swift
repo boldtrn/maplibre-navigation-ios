@@ -29,6 +29,9 @@ public enum CarPlayActivity: Int {
 @available(iOS 12.0, *)
 @objc(MBCarPlayManagerDelegate)
 public protocol CarPlayManagerDelegate {
+
+    var userCourseView: UIView? { get }
+
     /**
      Offers the delegate an opportunity to provide a customized list of leading bar buttons.
      
@@ -269,6 +272,9 @@ public class CarPlayManager: NSObject {
             mapTemplate: navigationMapTemplate,
             interfaceController: interfaceController
         )
+        if let userCourseView = delegate?.userCourseView {
+            navigationViewController.mapView.userCourseView = userCourseView
+        }
         navigationViewController.startNavigationSession(for: trip)
         navigationViewController.carPlayNavigationDelegate = self
         navigationViewController.setCustomMapStyle(with: mapStyleURL)
@@ -568,6 +574,9 @@ extension CarPlayManager: CPMapTemplateDelegate {
         let navigationViewController = CarPlayNavigationViewController(for: routeController,
                                                                        mapTemplate: navigationMapTemplate,
                                                                        interfaceController: interfaceController)
+        if let userCourseView = delegate?.userCourseView  {
+            navigationViewController.mapView.userCourseView = userCourseView
+        }
         navigationViewController.startNavigationSession(for: trip)
         navigationViewController.carPlayNavigationDelegate = self
         navigationViewController.setCustomMapStyle(with: mapStyleURL)
