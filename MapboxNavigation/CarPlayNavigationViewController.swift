@@ -20,8 +20,9 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
     
     @objc public var drivingSide: DrivingSide = .right
     
+    public private(set) var mapView = NavigationMapView()
+
     var routeController: RouteController
-    var mapView = NavigationMapView()
     let shieldHeight: CGFloat = 16
     
     var carSession: CPNavigationSession!
@@ -215,8 +216,7 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
         let location = notification.userInfo![RouteControllerNotificationUserInfoKey.locationKey] as! CLLocation
         
         // Update the user puck
-        let camera = MLNMapCamera(lookingAtCenter: location.coordinate, acrossDistance: 120, pitch: 60, heading: location.course)
-        self.mapView.updateCourseTracking(location: location, camera: camera, animated: true)
+        self.mapView.updateCourseTracking(location: location, animated: true)
         
         let congestionLevel = routeProgress.averageCongestionLevelRemainingOnLeg ?? .unknown
         guard let maneuver = carSession.upcomingManeuvers.first else { return }
