@@ -288,6 +288,11 @@ public class CarPlayManager: NSObject {
         self.delegate?.carPlayManager(self, didBeginNavigationWith: routeController, and: navigationViewController)
     }
 
+    func endNavigation() {
+        currentNavigator = nil
+        delegate?.carPlayManagerDidEndNavigation(self)
+    }
+
 }
 
 // MARK: CPApplicationDelegate
@@ -357,7 +362,7 @@ extension CarPlayManager: CPApplicationDelegate {
         return mapTemplate
     }
 
-    func panMapButton(for mapTemplate: CPMapTemplate, traitCollection: UITraitCollection) -> CPMapButton {
+    public func panMapButton(for mapTemplate: CPMapTemplate, traitCollection: UITraitCollection) -> CPMapButton {
         let panButton = CPMapButton { [weak self] _ in
             guard let strongSelf = self else {
                 return
@@ -379,12 +384,7 @@ extension CarPlayManager: CPApplicationDelegate {
 
     func dismissPanButton(for mapTemplate: CPMapTemplate, traitCollection: UITraitCollection) -> CPMapButton {
         let closeButton = CPMapButton { [weak self] _ in
-            guard let strongSelf = self, let mapButtons = strongSelf.defaultMapButtons else {
-                return
-            }
-
-            mapTemplate.mapButtons = mapButtons
-            mapTemplate.dismissPanningInterface(animated: true)
+            self?.resetPanButtons(mapTemplate)
         }
 
         let bundle = Bundle.mapboxNavigation
@@ -394,10 +394,12 @@ extension CarPlayManager: CPApplicationDelegate {
     }
 
     func resetPanButtons(_ mapTemplate: CPMapTemplate) {
-        if mapTemplate.isPanningInterfaceVisible, let mapButtons = defaultMapButtons {
-            mapTemplate.mapButtons = mapButtons
-            mapTemplate.dismissPanningInterface(animated: false)
+        guard let mapButtons = defaultMapButtons else {
+            return
         }
+
+        mapTemplate.mapButtons = mapButtons
+        mapTemplate.dismissPanningInterface(animated: false)
     }
 }
 
@@ -408,6 +410,10 @@ extension CarPlayManager: CPInterfaceControllerDelegate {
     public func templateWillAppear(_ template: CPTemplate, animated: Bool) {
         if template == self.interfaceController?.rootTemplate {
             mapViewController?.recenterButton.isHidden = true
+        }
+
+        if let mapTemplate = template as? CPMapTemplate {
+            resetPanButtons(mapTemplate)
         }
     }
     
@@ -641,7 +647,7 @@ extension CarPlayManager: CPMapTemplateDelegate {
         if let rootViewController = mapViewController,
            let trailingButtons = delegate?.carPlayManager?(self, trailingNavigationBarButtonsCompatibleWith: rootViewController.traitCollection, in: mapTemplate, for: .navigating) {
             mapTemplate.trailingNavigationBarButtons = trailingButtons
-        } 
+        }
         else {
             let exitButton = CPBarButton(type: .text) { [weak self] (_: CPBarButton) in
                 self?.currentNavigator?.exitNavigation(byCanceling: true)
@@ -675,7 +681,7 @@ extension CarPlayManager: CPMapTemplateDelegate {
         let mapView = carPlayMapViewController.mapView
         mapView.removeRoutes()
         mapView.removeWaypoints()
-        self.delegate?.carPlayManagerDidEndNavigation(self)
+        endNavigation()
     }
 
     public func mapTemplateDidBeginPanGesture(_ mapTemplate: CPMapTemplate) {
@@ -745,12 +751,13 @@ extension CarPlayManager: CPMapTemplateDelegate {
     }
 
     public func mapTemplate(_ mapTemplate: CPMapTemplate, panWith direction: CPMapTemplate.PanDirection) {
-        guard let carPlayMapViewController = mapViewController else {
+        let mapView = currentNavigator?.mapView ?? mapViewController?.mapView
+
+        guard let mapView else {
             return
         }
 
         // Determine the screen distance to pan by based on the distance from the visual center to the closest side.
-        let mapView = carPlayMapViewController.mapView
         let contentFrame = mapView.bounds.inset(by: mapView.safeAreaInsets)
         let increment = min(mapView.bounds.width, mapView.bounds.height) / 2.0
         
@@ -765,7 +772,9 @@ extension CarPlayManager: CPMapTemplateDelegate {
         }
         let shiftedDirection = (mapView.direction + relativeDirection).wrap(min: 0, max: 360)
         let shiftedCenterCoordinate = mapView.centerCoordinate.coordinate(at: distance, facing: shiftedDirection)
+
         mapView.setCenter(shiftedCenterCoordinate, animated: true)
+        mapView.tracksUserCourse = false
     }
 
     private func createRouteController(with route: Route) -> RouteController {
@@ -784,7 +793,7 @@ extension CarPlayManager: CPMapTemplateDelegate {
 @available(iOS 12.0, *)
 extension CarPlayManager: CarPlayNavigationDelegate {
     public func carPlayNavigationViewControllerDidArrive(_: CarPlayNavigationViewController) {
-        self.delegate?.carPlayManagerDidEndNavigation(self)
+        endNavigation()
     }
 
     public func carPlayNavigationViewControllerDidDismiss(_ carPlayNavigationViewController: CarPlayNavigationViewController, byCanceling canceled: Bool) {
@@ -794,7 +803,7 @@ extension CarPlayManager: CarPlayNavigationDelegate {
         if let interfaceController, interfaceController.templates.count > 1 {
             interfaceController.popToRootTemplate(animated: true)
         }
-        self.delegate?.carPlayManagerDidEndNavigation(self)
+        endNavigation()
     }
 }
 #else
