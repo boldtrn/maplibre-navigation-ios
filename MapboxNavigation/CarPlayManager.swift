@@ -77,6 +77,26 @@ public protocol CarPlayManagerDelegate {
     optional func carPlayManager(_ carplayManager: CarPlayManager, mapButtonsCompatibleWith traitCollection: UITraitCollection?, in template: CPTemplate, for activity: CarPlayActivity) -> [CPMapButton]?
 
     /**
+     Offers the delegate an opportunity to provide a way to set customized buttons of the displayed map template of the previewing activity.
+
+     This is a more free way to customize the template with trailing and leading navigatioon bar buttons, map buttons, etc. in one place.
+     If this method is not implemented, the template is configured with use of the separate delegate methods for the supported buttons.
+
+     - parameter template: The template to be customized.
+     */
+    @objc optional func setupPreviewingButtons(of mapTemplate: CPMapTemplate)
+
+    /**
+     Offers the delegate an opportunity to provide a way to set customized buttons of the displayed map template of the navigation activity.
+
+     This is a more free way to customize the template with trailing and leading navigatioon bar buttons, map buttons, etc. in one place.
+     If this method is not implemented, the template is configured with use of the separate delegate methods for the supported buttons.
+
+     - parameter template: The template to be customized.
+     */
+    @objc optional func setupNavigatingButtons(of mapTemplate: CPMapTemplate)
+
+    /**
      Offers the delegate an opportunity to provide an alternate navigator, otherwise a default built-in RouteController will be created and used.
      
      - parameter carPlayManager: The shared CarPlay manager.
@@ -280,7 +300,7 @@ public class CarPlayManager: NSObject {
         navigationViewController.setCustomMapStyle(with: mapStyleURL)
         self.currentNavigator = navigationViewController
 
-        setup(mapTemplate: navigationMapTemplate, forNavigating: trip)
+        setup(mapTemplate: navigationMapTemplate)
 
         carPlayMapViewController.isOverviewingRoutes = false
         carPlayMapViewController.present(navigationViewController, animated: true, completion: nil)
@@ -336,6 +356,11 @@ extension CarPlayManager: CPApplicationDelegate {
 
         let mapTemplate = CPMapTemplate()
         mapTemplate.mapDelegate = self
+
+        guard delegate?.setupPreviewingButtons == nil else {
+            delegate?.setupPreviewingButtons?(of: mapTemplate)
+            return mapTemplate
+        }
 
         if let leadingButtons = delegate?.carPlayManager?(self, leadingNavigationBarButtonsCompatibleWith: traitCollection, in: mapTemplate, for: .browsing) {
             mapTemplate.leadingNavigationBarButtons = leadingButtons
@@ -588,7 +613,7 @@ extension CarPlayManager: CPMapTemplateDelegate {
         navigationViewController.setCustomMapStyle(with: mapStyleURL)
         self.currentNavigator = navigationViewController
 
-        setup(mapTemplate: navigationMapTemplate, forNavigating: trip)
+        setup(mapTemplate: navigationMapTemplate)
         
         carPlayMapViewController.isOverviewingRoutes = false
         carPlayMapViewController.present(navigationViewController, animated: true, completion: nil)
@@ -600,8 +625,13 @@ extension CarPlayManager: CPMapTemplateDelegate {
         self.delegate?.carPlayManager(self, didBeginNavigationWith: routeController, and: navigationViewController)
     }
 
-    func setup(mapTemplate: CPMapTemplate, forNavigating trip: CPTrip) {
+    func setup(mapTemplate: CPMapTemplate) {
         mapTemplate.mapDelegate = self
+
+        guard delegate?.setupNavigatingButtons == nil else {
+            delegate?.setupNavigatingButtons?(of: mapTemplate)
+            return
+        }
 
         let traitCollection = currentNavigator?.traitCollection
 
