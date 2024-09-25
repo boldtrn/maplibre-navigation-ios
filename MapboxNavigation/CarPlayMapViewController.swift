@@ -67,7 +67,6 @@ class CarPlayMapViewController: UIViewController, MLNMapViewDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         self.resetCamera(animated: false, altitude: CarPlayMapViewController.defaultAltitude)
-        self.mapView.setUserTrackingMode(.followWithCourse, animated: true, completionHandler: nil)
     }
 
     override open func viewWillAppear(_ animated: Bool) {
