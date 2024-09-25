@@ -317,6 +317,16 @@ public class CarPlayManager: NSObject {
         currentNavigator = nil
         delegate?.carPlayManagerDidEndNavigation(self)
     }
+
+    public func showActionSheetAlert(title: String, message: String?) {
+        guard let interfaceController else {
+            return
+        }
+
+        let okAction = CPAlertAction(title: "OK", style: .default) { _ in}
+        let actionSheetTemplate = CPActionSheetTemplate(title: title, message: message, actions: [okAction])
+        interfaceController.presentTemplate(actionSheetTemplate, animated: true)
+    }
 }
 
 // MARK: CPApplicationDelegate
