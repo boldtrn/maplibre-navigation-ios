@@ -31,7 +31,6 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
     var carInterfaceController: CPInterfaceController
     var previousSafeAreaInsets: UIEdgeInsets?
 
-    var useCustomStyle: Bool = false
     var styleManager: StyleManager?
 
     let distanceFormatter = DistanceFormatter(approximate: true)
@@ -60,9 +59,12 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
         self.routeController = routeController
         self.mapTemplate = mapTemplate
         self.carInterfaceController = interfaceController
-        
         super.init(nibName: nil, bundle: nil)
+
+        styleManager = StyleManager(self, dayStyle: DayStyle(demoStyle: ()), nightStyle: NightStyle(demoStyle: ()))
         routeController.delegate = self
+
+        setupMapView()
     }
     
     @available(*, unavailable)
@@ -71,10 +73,20 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
     }
 
     func setCustomMapStyle(with mapStyleURL: URL?) {
-        useCustomStyle = mapStyleURL != nil
         if let mapStyleURL  {
+            styleManager = nil
             mapView.styleURL = mapStyleURL
         }
+    }
+
+    func setupMapView(showCompass: Bool = false) {
+        mapView.compassView.isHidden = !showCompass
+        mapView.logoView.isHidden = true
+        mapView.attributionButton.isHidden = true
+
+        mapView.defaultAltitude = 500
+        mapView.zoomedOutMotorwayAltitude = 1000
+        mapView.longManeuverDistance = 500
     }
 
     override public func viewDidLoad() {
@@ -82,20 +94,8 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
 
         mapView.frame = view.bounds
         mapView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        mapView.compassView.isHidden = true
-        mapView.logoView.isHidden = true
-        mapView.attributionButton.isHidden = true
         mapView.delegate = self
-
-        mapView.defaultAltitude = 500
-        mapView.zoomedOutMotorwayAltitude = 1000
-        mapView.longManeuverDistance = 500
-
         view.addSubview(mapView)
-        
-        if !useCustomStyle {
-            self.styleManager = StyleManager(self, dayStyle: DayStyle(demoStyle: ()), nightStyle: NightStyle(demoStyle: ()))
-        }
 
         self.resumeNotifications()
         self.routeController.resume()
@@ -104,9 +104,7 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
 
     override open func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        if !useCustomStyle {
-            self.styleManager?.ensureAppropriateStyle()
-        }
+        styleManager?.ensureAppropriateStyle()
     }
 
     override public func viewWillDisappear(_ animated: Bool) {

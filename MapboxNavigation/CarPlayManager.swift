@@ -170,9 +170,22 @@ public protocol CarPlayManagerDelegate {
 @available(iOS 12.0, *)
 @objc(MBCarPlayManager)
 public class CarPlayManager: NSObject {
-    public fileprivate(set) var interfaceController: CPInterfaceController?
-    public fileprivate(set) var carWindow: UIWindow?
-    public fileprivate(set) var routeController: RouteController?
+    public static let CarPlayWaypointKey: String = "MBCarPlayWaypoint"
+
+    /**
+     The shared CarPlay manager.
+     */
+    @objc(sharedManager)
+    public static var shared = CarPlayManager()
+
+    public var mapStyleURL: URL? {
+        didSet {
+            mapViewController?.setCustomMapStyle(with: mapStyleURL)
+            currentNavigator?.setCustomMapStyle(with: mapStyleURL)
+        }
+    }
+
+    public var showsCompass: Bool = false
 
     /**
      Developers should assign their own object as a delegate implementing the CarPlayManagerDelegate protocol for customization.
@@ -190,28 +203,19 @@ public class CarPlayManager: NSObject {
     @objc public var simulatedSpeedMultiplier = 1.0
 
     /**
-     The shared CarPlay manager.
+     A Boolean value indicating whether the phone is connected to CarPlay.
      */
-    @objc(sharedManager)
-    public static var shared = CarPlayManager()
+    @objc public var isConnectedToCarPlay = false
+
+    public fileprivate(set) var interfaceController: CPInterfaceController?
+    public fileprivate(set) var carWindow: UIWindow?
+    public fileprivate(set) var routeController: RouteController?
 
     public fileprivate(set) var mainMapTemplate: CPMapTemplate?
     public fileprivate(set) weak var currentNavigator: CarPlayNavigationViewController?
-    public static let CarPlayWaypointKey: String = "MBCarPlayWaypoint"
-
-    public static func resetSharedInstance() {
-        self.shared = CarPlayManager()
-    }
 
     var mapViewController: CarPlayMapViewController? {
         carWindow?.rootViewController as? CarPlayMapViewController
-    }
-
-    public var mapStyleURL: URL? {
-        didSet {
-            mapViewController?.setCustomMapStyle(with: mapStyleURL)
-            currentNavigator?.setCustomMapStyle(with: mapStyleURL)
-        }
     }
 
     /**
@@ -223,13 +227,6 @@ public class CarPlayManager: NSObject {
      The most recent search text.
      */
     var recentSearchText: String?
-
-    private var defaultMapButtons: [CPMapButton]?
-
-    /**
-     A Boolean value indicating whether the phone is connected to CarPlay.
-     */
-    @objc public var isConnectedToCarPlay = false
 
     lazy var fullDateComponentsFormatter: DateComponentsFormatter = {
         let formatter = DateComponentsFormatter()
@@ -251,6 +248,12 @@ public class CarPlayManager: NSObject {
         formatter.allowedUnits = [.day, .hour, .minute]
         return formatter
     }()
+
+    private var defaultMapButtons: [CPMapButton]?
+
+    public static func resetSharedInstance() {
+        self.shared = CarPlayManager()
+    }
 
     /**
      Starts a navigation with the gives routeController and the included route.
@@ -297,7 +300,9 @@ public class CarPlayManager: NSObject {
         }
         navigationViewController.startNavigationSession(for: trip)
         navigationViewController.carPlayNavigationDelegate = self
+
         navigationViewController.setCustomMapStyle(with: mapStyleURL)
+        navigationViewController.setupMapView(showCompass: showsCompass)
         self.currentNavigator = navigationViewController
 
         setup(mapTemplate: navigationMapTemplate)
@@ -312,7 +317,6 @@ public class CarPlayManager: NSObject {
         currentNavigator = nil
         delegate?.carPlayManagerDidEndNavigation(self)
     }
-
 }
 
 // MARK: CPApplicationDelegate

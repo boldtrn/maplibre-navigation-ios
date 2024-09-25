@@ -7,15 +7,14 @@ import CarPlay
 class CarPlayMapViewController: UIViewController, MLNMapViewDelegate {
     static let defaultAltitude: CLLocationDistance = 16000
     
-    var styleManager: StyleManager?
-    var useCustomStyle: Bool = false
-
     /// A very coarse location manager used for distinguishing between daytime and nighttime.
     fileprivate let coarseLocationManager: CLLocationManager = {
         let coarseLocationManager = CLLocationManager()
         coarseLocationManager.desiredAccuracy = kCLLocationAccuracyThreeKilometers
         return coarseLocationManager
     }()
+
+    var styleManager: StyleManager?
     
     var isOverviewingRoutes: Bool = false
     
@@ -38,10 +37,20 @@ class CarPlayMapViewController: UIViewController, MLNMapViewDelegate {
         return recenterButton
     }()
 
+    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
+        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
+        styleManager = StyleManager(self, dayStyle: DayStyle(demoStyle: ()), nightStyle: NightStyle(demoStyle: ()))
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        styleManager = StyleManager(self, dayStyle: DayStyle(demoStyle: ()), nightStyle: NightStyle(demoStyle: ()))
+    }
+    
     func setCustomMapStyle(with mapStyleURL: URL?) {
-        useCustomStyle = mapStyleURL != nil
         if let mapStyleURL  {
             mapView.styleURL = mapStyleURL
+            styleManager = nil
         }
     }
 
@@ -57,20 +66,13 @@ class CarPlayMapViewController: UIViewController, MLNMapViewDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        if !useCustomStyle {
-            self.styleManager = StyleManager(self, dayStyle: DayStyle(demoStyle: ()), nightStyle: NightStyle(demoStyle: ()))
-        }
-
         self.resetCamera(animated: false, altitude: CarPlayMapViewController.defaultAltitude)
         self.mapView.setUserTrackingMode(.followWithCourse, animated: true, completionHandler: nil)
     }
 
     override open func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        if !useCustomStyle {
-            self.styleManager?.ensureAppropriateStyle()
-        }
+        styleManager?.ensureAppropriateStyle()
     }
 
     public func zoomInButton() -> CPMapButton {
@@ -98,6 +100,8 @@ class CarPlayMapViewController: UIViewController, MLNMapViewDelegate {
     }
 
     // MARK: - MLNMapViewDelegate
+
+    func mapView(_ mapView: MLNMapView, didUpdate userLocation: MLNUserLocation?) { }
 
     func mapView(_ mapView: MLNMapView, didFinishLoading style: MLNStyle) {
         if let mapView = mapView as? NavigationMapView {
