@@ -287,6 +287,10 @@ public class CarPlayManager: NSObject {
             interfaceController.popToRootTemplate(animated: false)
         }
 
+        if #available(iOS 14.0, *) {
+            interfaceController.dismissTemplate(animated: true, completion: nil)
+        }
+
         let navigationMapTemplate = CPMapTemplate()
         interfaceController.setRootTemplate(navigationMapTemplate, animated: true)
 
@@ -611,6 +615,10 @@ extension CarPlayManager: CPMapTemplateDelegate {
 
         if interfaceController.templates.count > 1 {
             interfaceController.popToRootTemplate(animated: false)
+        }
+
+        if #available(iOS 14.0, *) {
+            interfaceController.dismissTemplate(animated: true, completion: nil)
         }
 
         let navigationMapTemplate = CPMapTemplate()
