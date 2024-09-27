@@ -235,8 +235,10 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
     }
     
     @objc func rerouted(_ notification: NSNotification) {
-        self.updateRouteOnMap()
-        self.mapView.recenterMap()
+        DispatchQueue.main.async {
+            self.updateRouteOnMap()
+            self.mapView.recenterMap()
+        }
     }
     
     func updateRouteOnMap() {
@@ -244,7 +246,7 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
         self.mapView.showRoutes([self.routeController.routeProgress.route], legIndex: self.routeController.routeProgress.legIndex)
         self.mapView.showWaypoints(self.routeController.routeProgress.route, legIndex: self.routeController.routeProgress.legIndex)
     }
-    
+
     func updateManeuvers(for routeProgress: RouteProgress) {
         guard let visualInstruction = routeProgress.currentLegProgress.currentStepProgress.currentVisualInstruction else { return }
         let step = self.routeController.routeProgress.currentLegProgress.currentStep
