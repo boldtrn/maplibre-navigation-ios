@@ -52,17 +52,21 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
      
      - postcondition: Call `startNavigationSession(for:)` after initializing this object to begin navigation.
      */
-    @objc(initForRouteController:mapTemplate:interfaceController:)
+    @objc(initForRouteController:mapTemplate:interfaceController:ignoreRouteControllerUpdates:)
     public init(for routeController: RouteController,
                 mapTemplate: CPMapTemplate,
-                interfaceController: CPInterfaceController) {
+                interfaceController: CPInterfaceController,
+                resetRouteControllerDelegate: Bool = true) {
         self.routeController = routeController
         self.mapTemplate = mapTemplate
         self.carInterfaceController = interfaceController
         super.init(nibName: nil, bundle: nil)
 
         styleManager = StyleManager(self, dayStyle: DayStyle(demoStyle: ()), nightStyle: NightStyle(demoStyle: ()))
-        routeController.delegate = self
+
+        if resetRouteControllerDelegate {
+            routeController.delegate = self
+        }
 
         setupMapView()
     }

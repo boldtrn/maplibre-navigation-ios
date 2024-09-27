@@ -297,7 +297,8 @@ public class CarPlayManager: NSObject {
         let navigationViewController = CarPlayNavigationViewController(
             for: routeController,
             mapTemplate: navigationMapTemplate,
-            interfaceController: interfaceController
+            interfaceController: interfaceController,
+            resetRouteControllerDelegate: false
         )
         if let userCourseView = delegate?.userCourseView {
             navigationViewController.mapView.userCourseView = userCourseView
