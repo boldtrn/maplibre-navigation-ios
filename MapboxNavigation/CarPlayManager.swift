@@ -186,6 +186,7 @@ public class CarPlayManager: NSObject {
     }
 
     public var showsCompass: Bool = false
+    public var handleProgressUpdates: Bool = true
 
     /**
      Developers should assign their own object as a delegate implementing the CarPlayManagerDelegate protocol for customization.
@@ -307,7 +308,7 @@ public class CarPlayManager: NSObject {
         navigationViewController.carPlayNavigationDelegate = self
 
         navigationViewController.setCustomMapStyle(with: mapStyleURL)
-        navigationViewController.setupMapView(showCompass: showsCompass)
+        navigationViewController.setupMapView(showCompass: showsCompass, handleProgressUpdates: handleProgressUpdates)
         self.currentNavigator = navigationViewController
 
         setup(mapTemplate: navigationMapTemplate)

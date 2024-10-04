@@ -42,7 +42,9 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
                             bottom: view.safeAreaInsets.bottom + padding,
                             right: view.safeAreaInsets.right + padding)
     }
-    
+
+    private var handleProgressUpdates: Bool = true
+
     /**
      Creates a new CarPlay navigation view controller for the given route controller and user interface.
      
@@ -83,7 +85,9 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
         }
     }
 
-    func setupMapView(showCompass: Bool = false) {
+    func setupMapView(showCompass: Bool = false, handleProgressUpdates: Bool = true) {
+        self.handleProgressUpdates = handleProgressUpdates
+
         mapView.compassView.isHidden = !showCompass
         mapView.logoView.isHidden = true
         mapView.attributionButton.isHidden = true
@@ -209,20 +213,27 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
     @objc func visualInstructionDidChange(_ notification: NSNotification) {
         let routeProgress = notification.userInfo![RouteControllerNotificationUserInfoKey.routeProgressKey] as! RouteProgress
         self.updateManeuvers(for: routeProgress)
-        self.mapView.showWaypoints(routeProgress.route)
-        self.mapView.addArrow(route: routeProgress.route, legIndex: routeProgress.legIndex, stepIndex: routeProgress.currentLegProgress.stepIndex + 1)
+
+        if handleProgressUpdates {
+            self.mapView.showWaypoints(routeProgress.route)
+            self.mapView.addArrow(route: routeProgress.route, legIndex: routeProgress.legIndex, stepIndex: routeProgress.currentLegProgress.stepIndex + 1)
+        }
     }
     
     @objc func progressDidChange(_ notification: NSNotification) {
-        let routeProgress = notification.userInfo![RouteControllerNotificationUserInfoKey.routeProgressKey] as! RouteProgress
-        let location = notification.userInfo![RouteControllerNotificationUserInfoKey.locationKey] as! CLLocation
-        
-        // Update the user puck
-        self.mapView.updateCourseTracking(location: location, animated: true)
-        
-        let congestionLevel = routeProgress.averageCongestionLevelRemainingOnLeg ?? .unknown
+        if let location = notification.userInfo?[RouteControllerNotificationUserInfoKey.locationKey] as? CLLocation {
+            mapView.updateCourseTracking(location: location, animated: true)
+        }
+
+        if let routeProgress = notification.userInfo?[RouteControllerNotificationUserInfoKey.routeProgressKey] as? RouteProgress {
+            updateCarPlaySessionAndMapTemplate(with: routeProgress)
+        }
+    }
+
+    @objc func updateCarPlaySessionAndMapTemplate(with routeProgress: RouteProgress) {
         guard let maneuver = carSession.upcomingManeuvers.first else { return }
         
+        let congestionLevel = routeProgress.averageCongestionLevelRemainingOnLeg ?? .unknown
         let legProgress = routeProgress.currentLegProgress
         let legDistance = self.distanceFormatter.measurement(of: legProgress.distanceRemaining)
         let legEstimates = CPTravelEstimates(distanceRemaining: legDistance, timeRemaining: legProgress.durationRemaining)
