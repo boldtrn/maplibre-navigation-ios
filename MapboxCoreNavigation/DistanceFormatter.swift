@@ -69,11 +69,11 @@ struct RoundingTable {
         func measurement(for distance: CLLocationDistance) -> Measurement<UnitLength> {
             switch self.unit {
             case .millimeter:
-                return Measurement(value: distance.kilometers / 1e6, unit: .millimeters)
+                return Measurement(value: distance.kilometers * 1e6, unit: .millimeters)
             case .centimeter:
-                return Measurement(value: distance.kilometers / 1e5, unit: .centimeters)
+                return Measurement(value: distance.kilometers * 1e5, unit: .centimeters)
             case .meter:
-                return Measurement(value: distance.kilometers / 1e3, unit: .meters)
+                return Measurement(value: distance.kilometers * 1e3, unit: .meters)
             case .kilometer:
                 return Measurement(value: distance.kilometers, unit: .kilometers)
             case .inch:
@@ -224,12 +224,17 @@ open class DistanceFormatter: LengthFormatter {
     @objc(measurementOfDistance:)
     public func measurement(of distance: CLLocationDistance) -> Measurement<UnitLength> {
         let threshold = self.threshold(for: distance)
+
         self.numberFormatter.maximumFractionDigits = threshold.maximumFractionDigits
         self.numberFormatter.roundingIncrement = threshold.roundingIncrement as NSNumber
         self.unit = threshold.unit
-        return threshold.measurement(for: distance)
+
+        var measurement = threshold.measurement(for: distance)
+        measurement.value = round(value: measurement.value, to: threshold.maximumFractionDigits)
+
+        return measurement
     }
-    
+
     /**
      Returns an attributed string containing the formatted, converted distance.
      
@@ -251,5 +256,10 @@ open class DistanceFormatter: LengthFormatter {
             }
         }
         return attributedString
+    }
+
+    private func round(value: Double, to maximumFractionDigits: Int) -> Double {
+        let multiplier = pow(10.0, Double(maximumFractionDigits))
+        return (value * multiplier).rounded() / multiplier
     }
 }
