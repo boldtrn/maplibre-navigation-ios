@@ -339,7 +339,7 @@ public class CarPlayManager: NSObject {
 
 @available(iOS 12.0, *)
 extension CarPlayManager: CPApplicationDelegate {
-    public func application(_ application: UIApplication, didConnectCarInterfaceController interfaceController: CPInterfaceController, to window: CPWindow) {
+    public func application(_ application: UIApplication? = nil, didConnectCarInterfaceController interfaceController: CPInterfaceController, to window: CPWindow) {
         self.isConnectedToCarPlay = true
         interfaceController.delegate = self
         self.interfaceController = interfaceController
@@ -359,7 +359,7 @@ extension CarPlayManager: CPApplicationDelegate {
         interfaceController.setRootTemplate(mapTemplate, animated: false)
     }
 
-    public func application(_ application: UIApplication, didDisconnectCarInterfaceController interfaceController: CPInterfaceController, from window: CPWindow) {
+    public func application(_ application: UIApplication? = nil, didDisconnectCarInterfaceController interfaceController: CPInterfaceController, from window: CPWindow) {
         self.isConnectedToCarPlay = false
         self.interfaceController = nil
         self.carWindow?.isHidden = true
