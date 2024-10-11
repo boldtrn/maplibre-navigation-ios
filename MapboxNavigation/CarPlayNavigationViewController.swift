@@ -21,12 +21,12 @@ public class CarPlayNavigationViewController: UIViewController, MLNMapViewDelega
     @objc public var drivingSide: DrivingSide = .right
     
     public private(set) var mapView = NavigationMapView()
+    public private(set) var mapTemplate: CPMapTemplate
 
     var routeController: RouteController
     let shieldHeight: CGFloat = 16
     
     var carSession: CPNavigationSession!
-    var mapTemplate: CPMapTemplate
     var carFeedbackTemplate: CPGridTemplate?
     var carInterfaceController: CPInterfaceController
     var previousSafeAreaInsets: UIEdgeInsets?
