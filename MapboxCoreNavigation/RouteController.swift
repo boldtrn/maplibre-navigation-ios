@@ -385,11 +385,6 @@ extension RouteController: CLLocationManagerDelegate {
            let remainingDistance = polyline.distance(from: closestCoordinate.coordinate) {
             let distanceTraveled = currentStep.distance - remainingDistance
             currentStepProgress.distanceTraveled = distanceTraveled
-            NotificationCenter.default.post(name: .routeControllerProgressDidChange, object: self, userInfo: [
-                RouteControllerNotificationUserInfoKey.routeProgressKey: self.routeProgress,
-                RouteControllerNotificationUserInfoKey.locationKey: self.location!, // guaranteed value
-                RouteControllerNotificationUserInfoKey.rawLocationKey: location // raw
-            ])
             
             // Check for a tunnel intersection whenever the current route step progresses.
             self.tunnelIntersectionManager.checkForTunnelIntersection(at: location, routeProgress: self.routeProgress)
@@ -399,6 +394,12 @@ extension RouteController: CLLocationManagerDelegate {
         self.updateRouteStepProgress(for: location)
         self.updateRouteLegProgress(for: location)
         self.updateVisualInstructionProgress()
+
+        NotificationCenter.default.post(name: .routeControllerProgressDidChange, object: self, userInfo: [
+            RouteControllerNotificationUserInfoKey.routeProgressKey: self.routeProgress,
+            RouteControllerNotificationUserInfoKey.locationKey: self.location!, // guaranteed value
+            RouteControllerNotificationUserInfoKey.rawLocationKey: location // raw
+        ])
 
         guard self.userIsOnRoute(location) || !(self.delegate?.routeController?(self, shouldRerouteFrom: location) ?? true) else {
             self.rerouteForDiversion(from: location, along: self.routeProgress)
